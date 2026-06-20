@@ -12,6 +12,7 @@ import (
 	"time"
 	"unsafe"
 
+	"github.com/sagernet/sing-vmess/vless/encryption"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/buf"
 	"github.com/sagernet/sing/common/bufio"
@@ -23,6 +24,13 @@ import (
 var tlsRegistry []func(conn net.Conn) (loaded bool, netConn net.Conn, reflectType reflect.Type, reflectPointer uintptr)
 
 func init() {
+	tlsRegistry = append(tlsRegistry, func(conn net.Conn) (loaded bool, netConn net.Conn, reflectType reflect.Type, reflectPointer uintptr) {
+		encryptionConn, loaded := N.CastReader[*encryption.CommonConn](conn)
+		if !loaded {
+			return
+		}
+		return true, encryptionConn.Conn, reflect.TypeOf(encryptionConn).Elem(), uintptr(unsafe.Pointer(encryptionConn))
+	})
 	tlsRegistry = append(tlsRegistry, func(conn net.Conn) (loaded bool, netConn net.Conn, reflectType reflect.Type, reflectPointer uintptr) {
 		tlsConn, loaded := N.CastReader[*tls.Conn](conn)
 		if !loaded {
